@@ -1,31 +1,45 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "compress40.h"
 #include "bitpack.h"
 #include "a2methods.h"
 #include "a2plain.h"
+#include "a2blocked.h"
+#include "uarray2b.h"
 #include "uarray2.h"
 #include "assert.h"
 #include "pnm.h"
-
+#include "mem.h"
+ 
 typedef A2Methods_UArray2 A2;
 
-// void apply_compression(int col, int row, A2Methods_T array, void *elem, void *cl);
+A2 rgb_to_cvc(Pnm_ppm rgb_image, A2Methods_mapfun *map, A2Methods_T methods);
+void apply_rgb_cvc(int col, int row, A2 array, void *elem, void *cl);
+void decompress_test(Pnm_ppm pixmap);
 
-void decompress_test(Pnm_ppm image);
-
-/* typedef struct data {
+typedef struct data {
         A2 array;
         A2Methods_T methods;
+        unsigned denominator;
 } *data;
-*/
+
+typedef struct Pnm_ybr {
+        float y;
+        float pb;
+        float pr;
+} *Pnm_ybr;
+
 extern void compress40(FILE *input) 
 {       
         assert(input != NULL);
 
-        A2Methods_T methods = uarray2_methods_plain; 
+        A2Methods_T methods = uarray2_methods_blocked; 
+        
+        A2Methods_mapfun *map = methods->map_default;
+        
+        assert(map);
 
         assert(methods != NULL);
 
@@ -36,42 +50,38 @@ extern void compress40(FILE *input)
         int width = (int)image->width;
         int height = (int)image->height;
 
-        printf("Original image height: %d, width: %d\n", height, width);
-
         assert(width > 1 && height > 1);
 
         if ((width % 2) == 1) {
                 width -= 1;
+                image->width = width;
         }    
 
         if ((height % 2) == 1) {
                 height -= 1;
+                image->height = height;
         }
 
-        printf("New image height: %d, width: %d\n", height, width);
+        A2 trimmed_image = methods->new_with_blocksize(width, height, sizeof(struct Pnm_rgb), 2);
 
-        A2 trimmed_image = methods->new(width, height, sizeof(struct Pnm_rgb));
         assert(trimmed_image != NULL);
 
-        for (int col = 0; col < width; col++) {
-                for (int row = 0; row < height; row++) {
-                        printf("col is: %d & row is %d\n", col, row);
-                        /* 
-                        struct Pnm_rgb *new_elem = methods->at(new_arr, org_height - row - 1, col);
-                        *new_elem = *(struct Pnm_rgb *)elem; */
+        for (int row = 0; row < height; row++) {
+                for (int col = 0; col < width; col++) {
+                        Pnm_rgb new_pixel = methods->at(trimmed_image, col, row);
+                        Pnm_rgb old_pixel = methods->at(image->pixels, col, row);
 
-
-                        struct Pnm_rgb *pixel = methods->at(trimmed_image, col, row);
-                        *pixel = *(struct Pnm_rgb *)methods->at(image->pixels, col, row);
+                        new_pixel->red = old_pixel->red;
+                        new_pixel->green = old_pixel->green;
+                        new_pixel->blue = old_pixel->blue;
                 }
         }
 
+        methods->free(&(image->pixels));
+
         image->pixels = trimmed_image;
 
-        // struct data {
-        //         pixels,
-        //         methods
-        // };
+        A2 pbr_pixels = rgb_to_cvc(image, map, methods);
 
         /* TODO: change the size to 32 bit word struct */
         //A2 compressed_image = image->methods->new(width / 2, height / 2, 10);
@@ -79,27 +89,54 @@ extern void compress40(FILE *input)
 
         /* image->methods->map(pixels, apply, cl); */
 
+        (void)pbr_pixels;
+
         decompress_test(image);
 }
 
-/* void convert_RGB(int col, int row, A2 array, void *elem, void *cl)
-{       
-        assert(elem != NULL);
-        assert(cl != NULL);
-
-        data cvc_array = (data)cl;
-        A2 RGB_pixels = cvc_array->array;
-        A2Methods_T methods = cvc_array->methods;
-
-        int width = methods->width(array);
-        int height = methods->height(array);
-
-        
-} */
-
-void decompress_test(Pnm_ppm image)
+A2 rgb_to_cvc(Pnm_ppm rgb_image, A2Methods_mapfun *map, A2Methods_T methods)
 {
-        Pnm_ppmwrite(stdout, image);
+        int width = rgb_image->width;
+        int height = rgb_image->height;
+
+        A2 pbr_pixels = methods->new_with_blocksize(width, height, sizeof(struct Pnm_ybr), 2);
+
+        data closure;
+        NEW(closure);
+
+        closure->array = pbr_pixels;
+        closure->methods = methods;
+        closure->denominator = rgb_image->denominator;
+
+        map(rgb_image->pixels, apply_rgb_cvc, closure);
+
+        return pbr_pixels;
+}
+
+
+void apply_rgb_cvc(int col, int row, A2 array, void *elem, void *cl)
+{       
+        Pnm_ybr new_pixel;
+        NEW(new_pixel);
+        struct Pnm_rgb rgb = *(struct Pnm_rgb *)elem;
+        data closure = cl;
+
+        float y = 0.299 * rgb.red + 0.587 * rgb.green + 0.114 * rgb.blue;
+        float pb = -0.168736 * rgb.red - 0.331264 * rgb.green + 0.5 * rgb.blue;
+        float pr = 0.5 * rgb.red - 0.418688 * rgb.green - 0.081312 * rgb.blue;
+
+        new_pixel->y = y;
+        new_pixel->pb = pb;
+        new_pixel->pr = pr;
+
+        *(Pnm_ybr *)closure->methods->at(closure->array, col, row) = new_pixel;
+
+        (void)array;
+}
+
+void decompress_test(Pnm_ppm pixmap)
+{
+        Pnm_ppmwrite(stdout, pixmap);
 }
 
 

@@ -60,7 +60,7 @@ all: ppmdiff
 
 ## Linking step (.o -> executable program)
 
-40image: 40image.o compress40.o bitpack.o a2plain.o uarray2.o
+40image: 40image.o compress40.o bitpack.o a2blocked.o uarray2b.o uarray2.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 ppmdiff: ppmdiff.o a2plain.o uarray2.o
