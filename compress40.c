@@ -1,3 +1,7 @@
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "compress40.h"
 #include "bitpack.h"
 #include "a2methods.h"
@@ -10,7 +14,7 @@ typedef A2Methods_UArray2 A2;
 
 // void apply_compression(int col, int row, A2Methods_T array, void *elem, void *cl);
 
-void decompress_test(A2 pixmap);
+void decompress_test(Pnm_ppm image);
 
 /* typedef struct data {
         A2 array;
@@ -46,7 +50,7 @@ extern void compress40(FILE *input)
 
         printf("New image height: %d, width: %d\n", height, width);
 
-        A2 trimmed_image = methods->new(width, height, 10);
+        A2 trimmed_image = methods->new(width, height, sizeof(struct Pnm_rgb));
         assert(trimmed_image != NULL);
 
         for (int col = 0; col < width; col++) {
@@ -57,10 +61,12 @@ extern void compress40(FILE *input)
                         *new_elem = *(struct Pnm_rgb *)elem; */
 
 
-                        //struct Pnm_rgb *pixel = methods->at(trimmed_image, col, row);
-                        //*pixel = *(struct Pnm_rgb *)image->methods->at(image->pixels, col, row);
+                        struct Pnm_rgb *pixel = methods->at(trimmed_image, col, row);
+                        *pixel = *(struct Pnm_rgb *)methods->at(image->pixels, col, row);
                 }
         }
+
+        image->pixels = trimmed_image;
 
         // struct data {
         //         pixels,
@@ -73,7 +79,7 @@ extern void compress40(FILE *input)
 
         /* image->methods->map(pixels, apply, cl); */
 
-        // decompress_test(trimmed_image);
+        decompress_test(image);
 }
 
 /* void convert_RGB(int col, int row, A2 array, void *elem, void *cl)
@@ -91,9 +97,9 @@ extern void compress40(FILE *input)
         
 } */
 
-void decompress_test(A2 pixmap)
+void decompress_test(Pnm_ppm image)
 {
-        Pnm_ppmwrite(stdout, pixmap);
+        Pnm_ppmwrite(stdout, image);
 }
 
 
