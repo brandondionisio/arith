@@ -60,6 +60,9 @@ all: ppmdiff
 
 ## Linking step (.o -> executable program)
 
+bitpack_test: bitpack_test.o bitpack.o
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
 40image: 40image.o compress40.o bitpack.o a2blocked.o uarray2b.o uarray2.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 

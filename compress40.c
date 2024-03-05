@@ -12,8 +12,10 @@
 #include "assert.h"
 #include "pnm.h"
 #include "mem.h"
-#include "arith40"
+#include "arith40.h"
 #include "data.c"
+
+#define SMALL_THRESHOLD = 0.3
 
 static float set_range(float num);
 void trim_image(Pnm_ppm *image, A2Methods_T methods, int *width, int *height);
@@ -23,6 +25,8 @@ Pnm_ppm cvc_to_rgb(A2 cv_image, A2Methods_mapfun *map, A2Methods_T methods);
 void apply_cvc_rgb(int col, int row, A2 array, void *elem, void *cl);
 void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods);
 A2 get_avg_chroma(A2 image, A2Methods_T methods);
+unsigned encode_9_bit_float(float a_val);
+unsigned encode_5_bit_float(float bcd_val);
 
 typedef struct Pnm_ybr {
         float y;
@@ -232,12 +236,20 @@ A2 get_avg_chroma(A2 image, A2Methods_T methods)
                         unsigned unsign_pb = Arith40_index_of_chroma(average_pb);
                         unsigned unsign_pr = Arith40_index_of_chroma(average_pr);
 
-                        a = (ybr4->y + ybr3->y + ybr2->y + ybr1->y) / 4.0;
+                        // 9 bits
+                        a = int(ybr4->y + ybr3->y + ybr2->y + ybr1->y) / 4.0;
+
+                        // 5 bits
                         b = (ybr4->y + ybr3->y - ybr2->y - ybr1->y) / 4.0; 
-                        c = (ybr4->y - ybr3->y + ybr2->y - ybr1->y) / 4.0; 
+                        c = (ybr4->y - ybr3->y + ybr2->y - ybr1->y) / 4.0;
                         d = (ybr4->y - ybr3->y - ybr2->y + ybr1->y) / 4.0;
 
+                        unsigned u_a = encode_9_bit_float(a);
+                        unsigned u_b = encode_5_bit_float(b);
+                        unsigned u_b = encode_5_bit_float(c);
+                        unsigned u_b = encode_5_bit_float(d);
 
+                        // Arith40_index_of_chroma(float x);
 
                         // ((Pnm_ybr)methods->at(image, col, row))->pb = average_pb;
                         // ((Pnm_ybr)methods->at(image, col + 1, row))->pb = average_pb;
@@ -250,4 +262,33 @@ A2 get_avg_chroma(A2 image, A2Methods_T methods)
                 }
         }
         return image;
+}
+
+unsigned encode_9_bit_float(float a_val)
+{
+        a_val *= 511;
+        int rounded_int = (int)(a + .5);
+
+        if (rounded_int < 0) {
+                rounded_int = 0;
+        } else if (rounded_int > 511) {
+                rounded_int = 511;
+        }
+        return (unsigned int)rounded_int;
+}
+
+unsigned encode_5_bit_float(float bcd_val)
+{
+        /* range of -16 < bcd_val < 16 */
+        bcd_val *= (16);
+
+        /* +.5 rounds to nearest integer */
+        int rounded_int = (int)(bcd_val + .5);
+
+        if (rounded_int < -16) {
+                rounded_int = -16;
+        } else if (rounded_int > 16) {
+                rounded_int = 16;
+        }
+        return (unsigned)rounded_int;
 }
