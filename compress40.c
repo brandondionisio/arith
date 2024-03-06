@@ -13,9 +13,14 @@
 #include "pnm.h"
 #include "mem.h"
 #include "arith40.h"
+#include "math.h"
 #include "data.c"
+#include "seq.h"
 
 #define SMALL_THRESHOLD = 0.3
+#define A_WIDTH 9
+#define BCD_WIDTH 5
+#define PRB_WIDTH 4
 
 static float set_range(float num);
 void trim_image(Pnm_ppm *image, A2Methods_T methods, int *width, int *height);
@@ -24,9 +29,10 @@ void apply_rgb_cvc(int col, int row, A2 array, void *elem, void *cl);
 Pnm_ppm cvc_to_rgb(A2 cv_image, A2Methods_mapfun *map, A2Methods_T methods);
 void apply_cvc_rgb(int col, int row, A2 array, void *elem, void *cl);
 void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods);
-A2 get_avg_chroma(A2 image, A2Methods_T methods);
-unsigned encode_9_bit_float(float a_val);
-unsigned encode_5_bit_float(float bcd_val);
+Seq_T get_seq(A2 image, A2Methods_T methods);
+uint64_t encode_9_bit_float(float a_val);
+int64_t encode_5_bit_float(float bcd_val);
+void print_image(Seq_T words, int width, int height);
 
 typedef struct Pnm_ybr {
         float y;
@@ -59,12 +65,14 @@ extern void compress40(FILE *input)
 
         A2 pbr_pixels = rgb_to_cvc(image, map, methods);
         
-        pbr_pixels = get_avg_chroma(pbr_pixels, methods);
+        Seq_T words = get_seq(pbr_pixels, methods);        
 
-        decompress_test(pbr_pixels, map, methods);
+        //decompress_test(pbr_pixels, map, methods);
+
+        print_image(words, width, height);
 
         methods->free(&pbr_pixels);
-        
+        Seq_free(&words);
 }
 
 void trim_image(Pnm_ppm *image, A2Methods_T methods, int *width, int *height)
@@ -212,19 +220,17 @@ extern void decompress40(FILE *input)
         (void)input;
 }
 
-A2 get_avg_chroma(A2 image, A2Methods_T methods)
+Seq_T get_seq(A2 image, A2Methods_T methods)
 {
-        float average_pb;
-        float average_pr;
-        float a;
-        float b;
-        float c;
-        float d;
+        float average_pb, average_pr, a, b, c, d;
         int width = methods->width(image);
         int height = methods->height(image);
 
-        for (int col = 0; col < width; col += 2) {
-                for (int row = 0; row < height; row += 2) {
+        /* initialize the sequence containing 32-bit words */
+        Seq_T words = Seq_new(1000);
+
+        for (int row = 0; row < height; row += 2) {
+                for (int col = 0; col < width; col += 2) {
                         Pnm_ybr ybr1 = methods->at(image, col, row);
                         Pnm_ybr ybr2 = methods->at(image, col + 1, row);
                         Pnm_ybr ybr3 = methods->at(image, col, row + 1);
@@ -233,25 +239,80 @@ A2 get_avg_chroma(A2 image, A2Methods_T methods)
                         average_pb = (ybr1->pb + ybr2->pb + ybr3->pb + ybr4->pb) / 4;
                         average_pr = (ybr1->pr + ybr2->pr + ybr3->pr + ybr4->pr) / 4;
 
-                        unsigned unsign_pb = Arith40_index_of_chroma(average_pb);
-                        unsigned unsign_pr = Arith40_index_of_chroma(average_pr);
+                        uint64_t unsign_pb = Arith40_index_of_chroma(average_pb);
+                        uint64_t unsign_pr = Arith40_index_of_chroma(average_pr);
 
-                        // 9 bits
-                        a = int(ybr4->y + ybr3->y + ybr2->y + ybr1->y) / 4.0;
-
-                        // 5 bits
-                        b = (ybr4->y + ybr3->y - ybr2->y - ybr1->y) / 4.0; 
+                        a = (ybr4->y + ybr3->y + ybr2->y + ybr1->y) / 4.0;
+                        b = (ybr4->y + ybr3->y - ybr2->y - ybr1->y) / 4.0;
                         c = (ybr4->y - ybr3->y + ybr2->y - ybr1->y) / 4.0;
                         d = (ybr4->y - ybr3->y - ybr2->y + ybr1->y) / 4.0;
 
-                        unsigned u_a = encode_9_bit_float(a);
-                        unsigned u_b = encode_5_bit_float(b);
-                        unsigned u_b = encode_5_bit_float(c);
-                        unsigned u_b = encode_5_bit_float(d);
+                        uint64_t u_a = encode_9_bit_float(a);
+                        int64_t u_b = encode_5_bit_float(b);
+                        int64_t u_c = encode_5_bit_float(c);
+                        int64_t u_d = encode_5_bit_float(d);
 
-                        // Arith40_index_of_chroma(float x);
+                        uint64_t word = 0;
+                        word = Bitpack_newu(word, PRB_WIDTH, 0, unsign_pr);
+                        word = Bitpack_newu(word, PRB_WIDTH, PRB_WIDTH, unsign_pb);
+                        word = Bitpack_news(word, BCD_WIDTH, 2 * PRB_WIDTH, u_d);
+                        word = Bitpack_news(word, BCD_WIDTH, BCD_WIDTH + 2 * PRB_WIDTH, u_c);
+                        word = Bitpack_news(word, BCD_WIDTH, 2 * BCD_WIDTH + 2 * PRB_WIDTH, u_b);
+                        word = Bitpack_newu(word, A_WIDTH, 3 * BCD_WIDTH + 2 * PRB_WIDTH, u_a);
 
-                        // ((Pnm_ybr)methods->at(image, col, row))->pb = average_pb;
+                        /* put in the sequence */
+                        Seq_addhi(words, &word);
+                }
+        }
+        /* return sequence */
+        return words;
+}
+
+uint64_t encode_9_bit_float(float a_val)
+{
+        a_val *= 511;
+        int rounded_int = (int)(a_val + .5);
+
+        if (rounded_int < 0) {
+                rounded_int = 0;
+        } else if (rounded_int > 511) {
+                rounded_int = 511;
+        }
+        return (uint64_t)rounded_int;
+}
+
+int64_t encode_5_bit_float(float bcd_val)
+{
+        /* range of -16 < bcd_val < 16 */
+        bcd_val *= (16 / 0.3);
+
+        /* +.5 rounds to nearest integer */
+        int64_t rounded_int = (int64_t)(bcd_val + 0.5);
+
+        if (rounded_int < -16) {
+                rounded_int = -16;
+        } else if (rounded_int > 16) {
+                rounded_int = 16;
+        }
+
+        return rounded_int;
+}
+
+void print_image(Seq_T words, int width, int height) 
+{
+        printf("COMP40 Compressed image format 2\n%u %u", width, height);
+        for (int i = 0; i < Seq_length(words); i++) {
+                uint64_t *word = Seq_get(words, i);
+                uint32_t codeword = (uint32_t)(*word);
+                
+                for (int j = 24; j >= 0; j = j - 8) {
+                        unsigned char byte = (codeword >> j);
+                        putchar(byte);
+                }
+        }
+}
+
+// ((Pnm_ybr)methods->at(image, col, row))->pb = average_pb;
                         // ((Pnm_ybr)methods->at(image, col + 1, row))->pb = average_pb;
                         // ((Pnm_ybr)methods->at(image, col, row + 1))->pb = average_pb;
                         // ((Pnm_ybr)methods->at(image, col + 1, row + 1))->pb = average_pb;
@@ -259,36 +320,3 @@ A2 get_avg_chroma(A2 image, A2Methods_T methods)
                         // ((Pnm_ybr)methods->at(image, col + 1, row))->pr = average_pr;
                         // ((Pnm_ybr)methods->at(image, col, row + 1))->pr = average_pr;
                         // ((Pnm_ybr)methods->at(image, col + 1, row + 1))->pr = average_pr;
-                }
-        }
-        return image;
-}
-
-unsigned encode_9_bit_float(float a_val)
-{
-        a_val *= 511;
-        int rounded_int = (int)(a + .5);
-
-        if (rounded_int < 0) {
-                rounded_int = 0;
-        } else if (rounded_int > 511) {
-                rounded_int = 511;
-        }
-        return (unsigned int)rounded_int;
-}
-
-unsigned encode_5_bit_float(float bcd_val)
-{
-        /* range of -16 < bcd_val < 16 */
-        bcd_val *= (16);
-
-        /* +.5 rounds to nearest integer */
-        int rounded_int = (int)(bcd_val + .5);
-
-        if (rounded_int < -16) {
-                rounded_int = -16;
-        } else if (rounded_int > 16) {
-                rounded_int = 16;
-        }
-        return (unsigned)rounded_int;
-}

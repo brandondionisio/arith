@@ -30,15 +30,12 @@ int main()
         /* testing newu */
         assert(Bitpack_getu(Bitpack_newu(8, 2, 1, 1), 2, 1) == 1);
         assert(Bitpack_getu(Bitpack_newu(0x3f4, 6, 2, 34), 6, 2) == 34);
-
+        assert(Bitpack_getu(Bitpack_newu(16, 3, 2, 7), 3, 2) == 7);
+        assert(Bitpack_getu(Bitpack_newu(16, 3, 2, 7), 3, 2) == Bitpack_getu(28, 3, 2));
+        
         /* testing news */
-        assert(Bitpack_getu(Bitpack_news(8, 2, 1, 1), 2, 1) == 1);
-        assert(Bitpack_getu(Bitpack_news(0x3f4, 6, 2, 34), 6, 2) == 34);
-        // 1000
-        // 1010
-        // 1
-
-
-        // 0011 1111 0100
-        // 
-}   
+        assert(Bitpack_gets(Bitpack_news(8, 2, 1, 1), 2, 1) == 1);
+        assert(Bitpack_gets(Bitpack_news(0x3f4, 6, 2, 18), 6, 2) == 18);
+        assert(Bitpack_news(0x3f4, 6, 2, -18) == 952);
+        assert(Bitpack_gets(Bitpack_news(16, 4, 2, 7), 3, 2) == -1);
+}
