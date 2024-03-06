@@ -33,6 +33,8 @@ Seq_T get_seq(A2 image, A2Methods_T methods);
 uint64_t encode_9_bit_float(float a_val);
 int64_t encode_5_bit_float(float bcd_val);
 void print_image(Seq_T words, int width, int height);
+/* TODO: we don't need width and height for future */
+A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods);
 
 typedef struct Pnm_ybr {
         float y;
@@ -65,14 +67,38 @@ extern void compress40(FILE *input)
 
         A2 pbr_pixels = rgb_to_cvc(image, map, methods);
         
-        Seq_T words = get_seq(pbr_pixels, methods);        
+        Seq_T words = get_seq(pbr_pixels, methods);     
 
-        //decompress_test(pbr_pixels, map, methods);
+        A2 cvc_arr = unpack_words(words, width, height, methods);
+
+        decompress_test(cvc_arr, map, methods);
 
         print_image(words, width, height);
 
         methods->free(&pbr_pixels);
         Seq_free(&words);
+}
+
+void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods)
+{
+        Pnm_ppm new_image = cvc_to_rgb(cvc_pixels, map, methods); 
+        Pnm_ppmwrite(stdout, new_image);
+        Pnm_ppmfree(&new_image);
+}
+
+extern void decompress40(FILE *input) 
+{
+        assert(input != NULL);
+
+        unsigned height, width;
+        
+        int read = fscanf(stdin, "COMP40 Compressed image format 2\n%u %u", &width, &height); 
+        
+        assert(read == 2);
+        
+        int c = getc(stdin);
+        
+        assert(c == '\n');
 }
 
 void trim_image(Pnm_ppm *image, A2Methods_T methods, int *width, int *height)
@@ -208,18 +234,6 @@ static float set_range(float num)
         }       
 }
 
-void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods)
-{
-        Pnm_ppm new_image = cvc_to_rgb(cvc_pixels, map, methods); 
-        Pnm_ppmwrite(stdout, new_image);
-        Pnm_ppmfree(&new_image);
-}
-
-extern void decompress40(FILE *input) 
-{
-        (void)input;
-}
-
 Seq_T get_seq(A2 image, A2Methods_T methods)
 {
         float average_pb, average_pr, a, b, c, d;
@@ -247,11 +261,12 @@ Seq_T get_seq(A2 image, A2Methods_T methods)
                         c = (ybr4->y - ybr3->y + ybr2->y - ybr1->y) / 4.0;
                         d = (ybr4->y - ybr3->y - ybr2->y + ybr1->y) / 4.0;
 
+                        /* TODO: change variable names; they're not unsigned */
                         uint64_t u_a = encode_9_bit_float(a);
                         int64_t u_b = encode_5_bit_float(b);
                         int64_t u_c = encode_5_bit_float(c);
                         int64_t u_d = encode_5_bit_float(d);
-
+                        
                         uint64_t word = 0;
                         word = Bitpack_newu(word, PRB_WIDTH, 0, unsign_pr);
                         word = Bitpack_newu(word, PRB_WIDTH, PRB_WIDTH, unsign_pb);
@@ -259,11 +274,17 @@ Seq_T get_seq(A2 image, A2Methods_T methods)
                         word = Bitpack_news(word, BCD_WIDTH, BCD_WIDTH + 2 * PRB_WIDTH, u_c);
                         word = Bitpack_news(word, BCD_WIDTH, 2 * BCD_WIDTH + 2 * PRB_WIDTH, u_b);
                         word = Bitpack_newu(word, A_WIDTH, 3 * BCD_WIDTH + 2 * PRB_WIDTH, u_a);
+                        
+                        /* Dynamically allocate memory for the word and copy the value */
+                        uint64_t *word_ptr = malloc(sizeof(uint64_t));
+                        
+                        *word_ptr = word;
 
-                        /* put in the sequence */
-                        Seq_addhi(words, &word);
+                        /* Put in the sequence */
+                        Seq_addhi(words, word_ptr);
                 }
         }
+
         /* return sequence */
         return words;
 }
@@ -271,45 +292,121 @@ Seq_T get_seq(A2 image, A2Methods_T methods)
 uint64_t encode_9_bit_float(float a_val)
 {
         a_val *= 511;
-        int rounded_int = (int)(a_val + .5);
 
-        if (rounded_int < 0) {
-                rounded_int = 0;
-        } else if (rounded_int > 511) {
-                rounded_int = 511;
+        if (a_val < 0) {
+                a_val = 0;
+        } else if (a_val > 511) {
+                a_val = 511;
         }
-        return (uint64_t)rounded_int;
+        return (uint64_t)a_val;
 }
 
 int64_t encode_5_bit_float(float bcd_val)
 {
-        /* range of -16 < bcd_val < 16 */
-        bcd_val *= (16 / 0.3);
+        /* range of -15 < bcd_val < 15 */
+        bcd_val *= (15 / 0.3);
 
-        /* +.5 rounds to nearest integer */
-        int64_t rounded_int = (int64_t)(bcd_val + 0.5);
-
-        if (rounded_int < -16) {
-                rounded_int = -16;
-        } else if (rounded_int > 16) {
-                rounded_int = 16;
+        if (bcd_val < -15) {
+                bcd_val = -15;
+        } else if (bcd_val > 15) {
+                bcd_val = 15;
         }
 
-        return rounded_int;
+        return bcd_val;
+}
+
+float decode_9_bit_float(uint64_t u_a)
+{
+        return (u_a * 1.0) / 511.0;
+}
+
+float decode_5_bit_float(int64_t u_bcd)
+{
+        return u_bcd * (0.3 / 15.0);
 }
 
 void print_image(Seq_T words, int width, int height) 
 {
-        printf("COMP40 Compressed image format 2\n%u %u", width, height);
+        printf("COMP40 Compressed image format 2\n%u %u\n", width, height);
         for (int i = 0; i < Seq_length(words); i++) {
-                uint64_t *word = Seq_get(words, i);
-                uint32_t codeword = (uint32_t)(*word);
+                uint64_t *word = (uint64_t *)Seq_get(words, i);
+                uint64_t codeword = *word;
                 
                 for (int j = 24; j >= 0; j = j - 8) {
                         unsigned char byte = (codeword >> j);
                         putchar(byte);
+                } 
+                
+                /* Free dynamically allocated memory */
+                free(word);
+        }
+}
+
+A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods) {
+        uint64_t u_pb, u_pr, u_a;
+        int64_t s_b, s_c, s_d;
+        float pr, pb, a, b, c, d;
+        int col = 0, row = 0;
+
+        A2 array = methods->new_with_blocksize(width, height, sizeof(Pnm_ybr), 2);
+
+        for (int i = 0; i < Seq_length(words); i++) {
+                uint64_t word = *(uint64_t *)Seq_get(words, i);
+                Pnm_ybr pixel1;
+                NEW(pixel1);
+                Pnm_ybr pixel2;
+                NEW(pixel2);
+                Pnm_ybr pixel3;
+                NEW(pixel3);
+                Pnm_ybr pixel4;
+                NEW(pixel4);
+
+                u_pr = Bitpack_getu(word, PRB_WIDTH, 0);
+                u_pb = Bitpack_getu(word, PRB_WIDTH, PRB_WIDTH);
+                s_d = Bitpack_gets(word, BCD_WIDTH, 2 * PRB_WIDTH);
+                s_c = Bitpack_gets(word, BCD_WIDTH, 2 * PRB_WIDTH + BCD_WIDTH);
+                s_b = Bitpack_gets(word, BCD_WIDTH, 2 * PRB_WIDTH + 2 * BCD_WIDTH);
+                u_a = Bitpack_getu(word, A_WIDTH, 2 * PRB_WIDTH + 3 * BCD_WIDTH);
+
+                pr = Arith40_chroma_of_index(u_pr);
+                pb = Arith40_chroma_of_index(u_pb);
+                d = decode_5_bit_float(s_d);
+                c = decode_5_bit_float(s_c);
+                b = decode_5_bit_float(s_b);
+                a = decode_9_bit_float(u_a);
+
+                pixel1->pr = pr;
+                pixel2->pr = pr;
+                pixel3->pr = pr;
+                pixel4->pr = pr;
+
+                pixel1->pb = pb;
+                pixel2->pb = pb;
+                pixel3->pb = pb;
+                pixel4->pb = pb;
+
+                pixel1->y = set_range(a - b - c + d);
+                pixel2->y = set_range(a - b + c - d);
+                pixel3->y = set_range(a + b - c - d);
+                pixel4->y = set_range(a + b + c + d);
+
+                Pnm_ybr pix_ptr1 = methods->at(array, col, row);
+                *pix_ptr1 = *(Pnm_ybr)pixel1;
+                Pnm_ybr pix_ptr2 = methods->at(array, col + 1, row);
+                *pix_ptr2 = *(Pnm_ybr)pixel2;
+                Pnm_ybr pix_ptr3 = methods->at(array, col, row + 1);
+                *pix_ptr3 = *(Pnm_ybr)pixel3;
+                Pnm_ybr pix_ptr4 = methods->at(array, col + 1, row + 1);
+                *pix_ptr4 = *(Pnm_ybr)pixel4;
+
+                col += 2;
+                if (col == width) {
+                        col = 0;
+                        row += 2;
                 }
         }
+        
+        return array;
 }
 
 // ((Pnm_ybr)methods->at(image, col, row))->pb = average_pb;
