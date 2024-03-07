@@ -30,8 +30,10 @@ Pnm_ppm cvc_to_rgb(A2 cv_image, A2Methods_mapfun *map, A2Methods_T methods);
 void apply_cvc_rgb(int col, int row, A2 array, void *elem, void *cl);
 void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods);
 Seq_T get_seq(A2 image, A2Methods_T methods);
-uint64_t encode_9_bit_float(float a_val);
-int64_t encode_5_bit_float(float bcd_val);
+uint64_t a_float_to_int(float a_val);
+int64_t bcd_float_to_int(float bcd_val);
+float a_int_to_float(uint64_t u_a);
+float bcd_int_to_float(int64_t u_bcd);
 void print_image(Seq_T words, int width, int height);
 /* TODO: we don't need width and height for future */
 A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods);
@@ -66,10 +68,44 @@ extern void compress40(FILE *input)
         trim_image(&image, methods, &width, &height);
 
         A2 pbr_pixels = rgb_to_cvc(image, map, methods);
+
+        // float y = ((Pnm_ybr)methods->at(pbr_pixels, 0, 0))->y;
+        // float pb = ((Pnm_ybr)methods->at(pbr_pixels, 0, 0))->pb;
+        // float pr = ((Pnm_ybr)methods->at(pbr_pixels, 0, 0))->pr;
+        // printf("(0, 0) prepack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(pbr_pixels, 1, 0))->y;
+        // pb = ((Pnm_ybr)methods->at(pbr_pixels, 1, 0))->pb;
+        // pr = ((Pnm_ybr)methods->at(pbr_pixels, 1, 0))->pr;
+        // printf("(1, 0) prepack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(pbr_pixels, 0, 1))->y;
+        // pb = ((Pnm_ybr)methods->at(pbr_pixels, 0, 1))->pb;
+        // pr = ((Pnm_ybr)methods->at(pbr_pixels, 0, 1))->pr;
+        // printf("(0, 1) prepack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(pbr_pixels, 1, 1))->y;
+        // pb = ((Pnm_ybr)methods->at(pbr_pixels, 1, 1))->pb;
+        // pr = ((Pnm_ybr)methods->at(pbr_pixels, 1, 1))->pr;
+        // printf("(1, 1) prepack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
         
-        Seq_T words = get_seq(pbr_pixels, methods);     
+        Seq_T words = get_seq(pbr_pixels, methods);
 
         A2 cvc_arr = unpack_words(words, width, height, methods);
+
+        // y = ((Pnm_ybr)methods->at(cvc_arr, 0, 0))->y;
+        // pb = ((Pnm_ybr)methods->at(cvc_arr, 0, 0))->pb;
+        // pr = ((Pnm_ybr)methods->at(cvc_arr, 0, 0))->pr;
+        // printf("(0, 0) unpack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(cvc_arr, 1, 0))->y;
+        // pb = ((Pnm_ybr)methods->at(cvc_arr, 1, 0))->pb;
+        // pr = ((Pnm_ybr)methods->at(cvc_arr, 1, 0))->pr;
+        // printf("(1, 0) unpack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(cvc_arr, 0, 1))->y;
+        // pb = ((Pnm_ybr)methods->at(cvc_arr, 0, 1))->pb;
+        // pr = ((Pnm_ybr)methods->at(cvc_arr, 0, 1))->pr;
+        // printf("(0, 1) unpack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
+        // y = ((Pnm_ybr)methods->at(cvc_arr, 1, 1))->y;
+        // pb = ((Pnm_ybr)methods->at(cvc_arr, 1, 1))->pb;
+        // pr = ((Pnm_ybr)methods->at(cvc_arr, 1, 1))->pr;
+        // printf("(1, 1) unpack cvc y, pb, pr: %.04f %.04f %.04f\n", y, pb, pr);
 
         decompress_test(cvc_arr, map, methods);
 
@@ -81,7 +117,15 @@ extern void compress40(FILE *input)
 
 void decompress_test(A2 cvc_pixels, A2Methods_mapfun *map, A2Methods_T methods)
 {
-        Pnm_ppm new_image = cvc_to_rgb(cvc_pixels, map, methods); 
+        Pnm_ppm new_image = cvc_to_rgb(cvc_pixels, map, methods);
+
+        // (119 25 19) (72  0  0)
+        // (53  25 52) (53 25 52)
+        // unsigned red = ((Pnm_rgb)methods->at(new_image->pixels, 1, 1))->red;
+        // unsigned blue = ((Pnm_rgb)methods->at(new_image->pixels, 1, 1))->blue;
+        // unsigned green = ((Pnm_rgb)methods->at(new_image->pixels, 1, 1))->green;
+        // printf("Decompressed image: %u %u %u\n", red, blue, green);
+
         Pnm_ppmwrite(stdout, new_image);
         Pnm_ppmfree(&new_image);
 }
@@ -161,7 +205,7 @@ void apply_rgb_cvc(int col, int row, A2 array, void *elem, void *cl)
         struct data *closure = cl;
 
         if ((col > closure->methods->width(closure->array)) || 
-                (row > closure->methods->height(closure->array))){
+            (row > closure->methods->height(closure->array))){
                 return;
         }
         
@@ -262,10 +306,10 @@ Seq_T get_seq(A2 image, A2Methods_T methods)
                         d = (ybr4->y - ybr3->y - ybr2->y + ybr1->y) / 4.0;
 
                         /* TODO: change variable names; they're not unsigned */
-                        uint64_t u_a = encode_9_bit_float(a);
-                        int64_t u_b = encode_5_bit_float(b);
-                        int64_t u_c = encode_5_bit_float(c);
-                        int64_t u_d = encode_5_bit_float(d);
+                        uint64_t u_a = a_float_to_int(a);
+                        int64_t u_b = bcd_float_to_int(b);
+                        int64_t u_c = bcd_float_to_int(c);
+                        int64_t u_d = bcd_float_to_int(d);
                         
                         uint64_t word = 0;
                         word = Bitpack_newu(word, PRB_WIDTH, 0, unsign_pr);
@@ -289,7 +333,19 @@ Seq_T get_seq(A2 image, A2Methods_T methods)
         return words;
 }
 
-uint64_t encode_9_bit_float(float a_val)
+/************** a_float_to_int **************
+ * 
+ * converts a given float to a 9-bit unsigned integer
+ *
+ * Parameters:
+ *      float a_val: float value which we assume to be an a-value.
+ * Returns:
+ *      a boolean value representing whether it fits or not
+ * Expects:
+ *      does not expect anything
+ *
+ ********************************************/
+uint64_t a_float_to_int(float a_val)
 {
         a_val *= 511;
 
@@ -301,7 +357,21 @@ uint64_t encode_9_bit_float(float a_val)
         return (uint64_t)a_val;
 }
 
-int64_t encode_5_bit_float(float bcd_val)
+/************** bcd_float_to_int **************
+ * 
+ * Checks if a signed integer 'n' can be represented in 'width' bits
+ *
+ * Parameters:
+ *      int64_t n:      signed integer that will be checked by function
+ *      unsigned width: unsigned integer that represents the maximum
+ *                      number of bits the integer can fit into  
+ * Returns:
+ *      a boolean value representing whether it fits or not
+ * Expects:
+ *      does not expect anything
+ *
+ ********************************************/
+int64_t bcd_float_to_int(float bcd_val)
 {
         /* range of -15 < bcd_val < 15 */
         bcd_val *= (15 / 0.3);
@@ -315,14 +385,14 @@ int64_t encode_5_bit_float(float bcd_val)
         return bcd_val;
 }
 
-float decode_9_bit_float(uint64_t u_a)
+float a_int_to_float(uint64_t u_a)
 {
         return (u_a * 1.0) / 511.0;
 }
 
-float decode_5_bit_float(int64_t u_bcd)
+float bcd_int_to_float(int64_t u_bcd)
 {
-        return u_bcd * (0.3 / 15.0);
+        return (u_bcd * 0.3) / 15.0;
 }
 
 void print_image(Seq_T words, int width, int height) 
@@ -348,7 +418,7 @@ A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods) {
         float pr, pb, a, b, c, d;
         int col = 0, row = 0;
 
-        A2 array = methods->new_with_blocksize(width, height, sizeof(Pnm_ybr), 2);
+        A2 array = methods->new_with_blocksize(width, height, sizeof(struct Pnm_ybr), 2);
 
         for (int i = 0; i < Seq_length(words); i++) {
                 uint64_t word = *(uint64_t *)Seq_get(words, i);
@@ -370,10 +440,10 @@ A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods) {
 
                 pr = Arith40_chroma_of_index(u_pr);
                 pb = Arith40_chroma_of_index(u_pb);
-                d = decode_5_bit_float(s_d);
-                c = decode_5_bit_float(s_c);
-                b = decode_5_bit_float(s_b);
-                a = decode_9_bit_float(u_a);
+                d = bcd_int_to_float(s_d);
+                c = bcd_int_to_float(s_c);
+                b = bcd_int_to_float(s_b);
+                a = a_int_to_float(u_a);
 
                 pixel1->pr = pr;
                 pixel2->pr = pr;
@@ -385,20 +455,20 @@ A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods) {
                 pixel3->pb = pb;
                 pixel4->pb = pb;
 
-                pixel1->y = set_range(a - b - c + d);
-                pixel2->y = set_range(a - b + c - d);
-                pixel3->y = set_range(a + b - c - d);
-                pixel4->y = set_range(a + b + c + d);
+                pixel1->y = a - b - c + d;
+                pixel2->y = a - b + c - d;
+                pixel3->y = a + b - c - d;
+                pixel4->y = a + b + c + d;
 
-                Pnm_ybr pix_ptr1 = methods->at(array, col, row);
-                *pix_ptr1 = *(Pnm_ybr)pixel1;
-                Pnm_ybr pix_ptr2 = methods->at(array, col + 1, row);
-                *pix_ptr2 = *(Pnm_ybr)pixel2;
-                Pnm_ybr pix_ptr3 = methods->at(array, col, row + 1);
-                *pix_ptr3 = *(Pnm_ybr)pixel3;
-                Pnm_ybr pix_ptr4 = methods->at(array, col + 1, row + 1);
-                *pix_ptr4 = *(Pnm_ybr)pixel4;
-
+                Pnm_ybr pix_ptr1 = (Pnm_ybr)methods->at(array, col, row);
+                *pix_ptr1 = *pixel1;
+                Pnm_ybr pix_ptr2 = (Pnm_ybr)methods->at(array, col + 1, row);
+                *pix_ptr2 = *pixel2;
+                Pnm_ybr pix_ptr3 = (Pnm_ybr)methods->at(array, col, row + 1);
+                *pix_ptr3 = *pixel3;
+                Pnm_ybr pix_ptr4 = (Pnm_ybr)methods->at(array, col + 1, row + 1);
+                *pix_ptr4 = *pixel4;
+ 
                 col += 2;
                 if (col == width) {
                         col = 0;
@@ -408,12 +478,3 @@ A2 unpack_words(Seq_T words, int width, int height, A2Methods_T methods) {
         
         return array;
 }
-
-// ((Pnm_ybr)methods->at(image, col, row))->pb = average_pb;
-                        // ((Pnm_ybr)methods->at(image, col + 1, row))->pb = average_pb;
-                        // ((Pnm_ybr)methods->at(image, col, row + 1))->pb = average_pb;
-                        // ((Pnm_ybr)methods->at(image, col + 1, row + 1))->pb = average_pb;
-                        // ((Pnm_ybr)methods->at(image, col, row))->pr = average_pr;
-                        // ((Pnm_ybr)methods->at(image, col + 1, row))->pr = average_pr;
-                        // ((Pnm_ybr)methods->at(image, col, row + 1))->pr = average_pr;
-                        // ((Pnm_ybr)methods->at(image, col + 1, row + 1))->pr = average_pr;
