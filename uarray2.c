@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+/*************************************************************
+ *
+ *                     uarray2.c
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
+ *           Date: 03/07/24
+ *
+ *     Summary: This file implements the functions for the uarray2 interface.
+ *              We did not write this file as this entire implementation was
+ *              given as a solution for a previous homework. 
+ *              
+ **************************************************************/
+
+=======
+>>>>>>> master
 #include <stdlib.h>
 
 #include "assert.h"

@@ -1,11 +1,51 @@
+<<<<<<< HEAD
+/*************************************************************
+ *
+ *                     40image.c
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
+ *           Date: 03/07/24
+ *
+ *     Summary: This file implements the main function for the 40image program
+ *              which handles commands and calls the functions necessary for
+ *              both image compression and decompression.
+ *              
+ **************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+=======
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+>>>>>>> master
 #include "assert.h"
 #include "compress40.h"
 
 static void (*compress_or_decompress)(FILE *input) = compress40;
 
+<<<<<<< HEAD
+/**************** main ****************
+ * 
+ * main function for the 40image program which handles commands and calls the
+ * functions necessary for both image compression and decompression.
+ *
+ * Parameters:
+ *      int argc:     number of arguments passed into the program
+ *      char *argv[]: pointer to the array containing the arguments
+ * Returns:
+ *      integer determining the success of the program
+ * Expects:
+ *      there is at most one file provided on the command line (throws a CRE
+ *      if not)
+ *      provided file is able to be opened (throws a CRE if not)
+ *
+ ********************************************/
+=======
+>>>>>>> master
 int main(int argc, char *argv[])
 {
         int i;

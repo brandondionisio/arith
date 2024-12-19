@@ -49,7 +49,11 @@ INCLUDES = $(shell echo *.h)
 
 ############### Rules ###############
 
+<<<<<<< HEAD
+all: ppmdiff 40image-6
+=======
 all: ppmdiff
+>>>>>>> master
 
 
 ## Compile step (.c files -> .o files)
@@ -63,7 +67,11 @@ all: ppmdiff
 bitpack_test: bitpack_test.o bitpack.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
+<<<<<<< HEAD
+40image-6: 40image.o compress40.o word_operations.o convert_types.o bitpack.o a2blocked.o uarray2b.o uarray2.o
+=======
 40image: 40image.o compress40.o bitpack.o a2blocked.o uarray2b.o uarray2.o
+>>>>>>> master
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 ppmdiff: ppmdiff.o a2plain.o uarray2.o

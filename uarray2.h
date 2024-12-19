@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+/**************************************************************
+ *
+ *                     uarray2.h
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
+ *           Date: 03/07/24
+ *
+ *     Summary: Function declarations for the uarray2 interface.
+ *              We did not write this file as this entire implementation was
+ *              given as a solution for a previous homework. 
+ *              
+ **************************************************************/
+
+=======
+>>>>>>> master
 #ifndef ARRAY2_INCLUDED
 #define ARRAY2_INCLUDED
 

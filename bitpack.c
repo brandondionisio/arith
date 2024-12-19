@@ -1,3 +1,24 @@
+<<<<<<< HEAD
+/*************************************************************
+ *
+ *                     bitpack.c
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
+ *           Date: 03/07/24
+ *
+ *     Summary: This file implements the functions for the bitpacking aspect
+ *              of this program which aids in the conversion from pixels to
+ *              32-bit words and vice versa. The functions in this file are
+ *              used to see if both unsigned and signed integers fit within a
+ *              certain number of bits, extract a field from both unsigned and
+ *              signed bits, and update a field in a given unsigned or signed
+ *              integer.
+ *              
+ **************************************************************/
+
+=======
+>>>>>>> master
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
@@ -167,7 +188,12 @@ int64_t Bitpack_gets(uint64_t word, unsigned width, unsigned lsb)
  *      a Bitpack_Overflow exception if not)
  *
  ********************************************/
+<<<<<<< HEAD
+uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
+                                                                uint64_t value)
+=======
 uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb, uint64_t value) 
+>>>>>>> master
 {
         /* assert valid width and lsb values */
         assert(width <= MAX_BIT_WIDTH);
@@ -213,7 +239,12 @@ uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb, uint64_t valu
  *      a Bitpack_Overflow exception if not)
  *
  ********************************************/
+<<<<<<< HEAD
+uint64_t Bitpack_news(uint64_t word, unsigned width, unsigned lsb,
+                                                                 int64_t value)
+=======
 uint64_t Bitpack_news(uint64_t word, unsigned width, unsigned lsb, int64_t value)
+>>>>>>> master
 {
         /* assert valid width and lsb values */
         assert(width <= MAX_BIT_WIDTH);

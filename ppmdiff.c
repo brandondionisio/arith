@@ -1,3 +1,20 @@
+<<<<<<< HEAD
+/*************************************************************
+ *
+ *                     ppmdiff.c
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
+ *           Date: 03/07/24
+ *
+ *     Summary: This file implements the ppmdiff program which takes in two
+ *              images and outputs a number from 0-1 representing their
+ *              similarity.
+ *              
+ **************************************************************/
+
+=======
+>>>>>>> master
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,9 +34,13 @@ int main(int argc, char *argv[])
         }
 
         char *filename_1 = argv[1];
+<<<<<<< HEAD
+        char *filename_2 = argv[2];
+=======
         // printf("filename 1 is: %s\n", filename_1);
         char *filename_2 = argv[2];
         // printf("filename 2 is: %s\n", filename_2);
+>>>>>>> master
         
         FILE *file_1 = fopen(filename_1, "r");
         if (file_1 == NULL) {
@@ -77,6 +98,22 @@ int main(int argc, char *argv[])
                         assert(methods->at(pixels_1, col, row) != NULL);
                         assert(methods->at(pixels_2, col, row) != NULL);
 
+<<<<<<< HEAD
+                        struct Pnm_rgb rgb_1 = *(struct Pnm_rgb *)methods->at
+                                                          (pixels_1, col, row);
+                        struct Pnm_rgb rgb_2 = *(struct Pnm_rgb *)methods->at
+                                                          (pixels_2, col, row);
+
+                        float red_diff = ((float)rgb_2.red) / 255.0 - 
+                                                    ((float)rgb_1.red) / 255.0;
+                        float blue_diff = ((float)rgb_2.blue) / 255.0 - 
+                                                   ((float)rgb_1.blue) / 255.0;
+                        float green_diff = ((float)rgb_2.green) / 255.0 -
+                                                  ((float)rgb_1.green) / 255.0;
+
+                        sum += (pow(red_diff, 2) + pow(blue_diff, 2) +
+                                                           pow(green_diff, 2));
+=======
                         struct Pnm_rgb rgb_1 = *(struct Pnm_rgb *)methods->at(pixels_1, col, row);
                         struct Pnm_rgb rgb_2 = *(struct Pnm_rgb *)methods->at(pixels_2, col, row);
 
@@ -85,6 +122,7 @@ int main(int argc, char *argv[])
                         float green_diff = ((float)rgb_2.green) / 255.0 - ((float)rgb_1.green) / 255.0;
 
                         sum += (pow(red_diff, 2) + pow(blue_diff, 2) + pow(green_diff, 2));
+>>>>>>> master
                 } 
         }
 
