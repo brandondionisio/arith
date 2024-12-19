@@ -2,5 +2,4 @@
 *.pgm
 *.txt
 *.ppm
-*
-!*.*
+images/mobo.ppm

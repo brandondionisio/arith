@@ -1,0 +1,83 @@
+/**************************************************************
+ *
+ *                     README
+ *
+ *     Assignment: HW 4: arith
+ *        Authors: Brandon Dionisio & Jordan Pauzie (jpauzi01 & bdioni01)
+ *           Date: 03/07/24
+ *
+ **************************************************************/
+
+Who we collaborated with:
+    
+    We did not collaborate with anyone on this assignment.
+
+What we implemented correctly:
+    
+    We fully implemented the 40image program, effectively implementing both
+    the image compression and image decompression aspects. In doing this, we
+    successfully created the bitpack interface and the ppmdiff program.
+
+Architecture of our solutions:
+
+    Compression:
+    For the compression part of our program, we control the majority of image
+    compression inside the compress40.c file. Here, we first read in the
+    original image with blocked parsing from the input file and store it inside
+    a Pnm_ppm object. Next, we trim the image with the trim_image function
+    within the compression_funcs.c file to trim down an odd height or width,
+    preparing the image for extracting the codewords. We then pass the Pnm_ppm
+    object through the rgb_to_cv function inside convert_rgb_cv.c to transfer
+    the rgb color space pixel data in the original image to cv color space
+    pixel data in a new A2 image object. The rgb_to_cv function utilizes a
+    mapping function with the CV_RGB_Closure closure found in structs.c to
+    make this transformation. After obtaining the new cv color space image
+    object, we then call the get_seq function inside the word_operations.c
+    file to create a sequence containing 32-bit words corresponding to every
+    four pixels in a 2x2 block. To do this, we calculate the average pr and pb
+    values for the four pixels and the a, b, c, and d values with a linear
+    transformation. Next, we use the Arith40_index_of_chroma function from the
+    arith40 library to convert the average pr and pb floats to unsigned
+    4-bit integers. Similarly, we use the a_float_to_int and bcd_float_to_int
+    functions inside convert_types.c to convert the a, b, c, and d floats to
+    unsigned 9-bit integers (a) and signed 5-bit integers (b, c, & d). Now,
+    we can use the bitpack interface found in bitpack.c to pack each of these
+    values (a, b, c, d, pb, & pr) into a single 32-bit word using Bitpack_newu
+    and Bitpack_news. Each of these words will then be put inside the sequence.
+    Finally, we can call the print_image function in compression_funcs.c to
+    output the codewords in the sequence using putchar().
+
+    Decompression:
+    For the decompression part of our program, we control the majority of image
+    compression inside the compress40.c file with the decompress40 function.
+    First, we read in the image header in the input file to obtain the
+    compressed image's width and height. We then initialize a new A2 blocked
+    array that will hold the decompressed image information. We now start
+    reading in each of the words from the input file and for each word, we call
+    unpack_word inside word_operations.c, which extracts the image information
+    and stores it inside the pixels in the passed-in new image object. The
+    unpack_word function works by obtaining the unsigned (pr, pb, & a) and
+    signed (b, c, & d) integers from each codeword using the Bitpack_getu and
+    Bitpack_gets functions found inside bitpack.c. Next, we use the
+    Arith40_chroma_of_index function from the arith40 library to convert the
+    pr and pb 4-bit unsigned integers to floats. Similarly, we use the
+    a_int_to_float and bcd_int_to_float functions inside convert_types.c to
+    convert the a 9-bit signed integer and b, c, and d 5-bit unsigned integers
+    to floats. Next, we can use the get_new_pixel functions with the values we
+    just obtained to create new Pnm_ybr structs (whose implementation is found
+    in structs.c) to insert as pixels inside the new image array. We then pass
+    the image array through the cv_to_rgb function inside convert_rgb_cv.c to
+    transfer the cv color space pixel data in the this image array to a Pnm_ppm
+    object containing an image object in rgb color space. The cv_to_rgb
+    function utilizes a mapping function with the CV_RGB_Closure closure found
+    in structs.c to make this transformation. Now that we have our Pnm_ppm
+    object representing the decompressed image in rgb color space, we can call
+    the Pnm_ppmwrite function to write the image to stdout. Finally, we can use
+    the free_image function found inside word_operations.c to free the memory
+    associated with the rgb image object.    
+
+Time analyzing problems:
+- We spent about 10 hours on this part of the assignment.
+
+Time completing problem:
+- We spent about 30 hours on this part of the assignment.
