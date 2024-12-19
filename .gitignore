@@ -2,4 +2,9 @@
 *.pgm
 *.txt
 *.ppm
+*.o
 images/mobo.ppm
+bitpack_test.c
+float_bit_test.c
+*
+!*.*
