@@ -3,8 +3,13 @@
  *                     a2plain.c
  *
  *     Assignment: HW 3: locality
+<<<<<<< HEAD
  *        Authors: Brandon Dionisio & Jordan Pauzie (bdioni01 & jpauzi01)
  *           Date: 03/07/24
+=======
+ *        Authors: Dan Glorioso & Brandon Dionisio (dglori02 & bdioni01)
+ *           Date: 02/22/24
+>>>>>>> master
  *
  *     Summary: This file implements the A2Methods_T interface for the 
  *              UArray2_T data structure. This file is used to create a

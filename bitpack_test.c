@@ -32,7 +32,11 @@ int main()
         assert(Bitpack_getu(Bitpack_newu(0x3f4, 6, 2, 34), 6, 2) == 34);
         assert(Bitpack_getu(Bitpack_newu(16, 3, 2, 7), 3, 2) == 7);
         assert(Bitpack_getu(Bitpack_newu(16, 3, 2, 7), 3, 2) == Bitpack_getu(28, 3, 2));
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> master
         /* testing news */
         assert(Bitpack_gets(Bitpack_news(8, 2, 1, 1), 2, 1) == 1);
         assert(Bitpack_gets(Bitpack_news(0x3f4, 6, 2, 18), 6, 2) == 18);

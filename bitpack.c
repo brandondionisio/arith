@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*************************************************************
  *
  *                     bitpack.c
@@ -16,6 +17,8 @@
  *              
  **************************************************************/
 
+=======
+>>>>>>> master
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
@@ -185,8 +188,12 @@ int64_t Bitpack_gets(uint64_t word, unsigned width, unsigned lsb)
  *      a Bitpack_Overflow exception if not)
  *
  ********************************************/
+<<<<<<< HEAD
 uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
                                                                 uint64_t value)
+=======
+uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb, uint64_t value) 
+>>>>>>> master
 {
         /* assert valid width and lsb values */
         assert(width <= MAX_BIT_WIDTH);
@@ -232,8 +239,12 @@ uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
  *      a Bitpack_Overflow exception if not)
  *
  ********************************************/
+<<<<<<< HEAD
 uint64_t Bitpack_news(uint64_t word, unsigned width, unsigned lsb,
                                                                  int64_t value)
+=======
+uint64_t Bitpack_news(uint64_t word, unsigned width, unsigned lsb, int64_t value)
+>>>>>>> master
 {
         /* assert valid width and lsb values */
         assert(width <= MAX_BIT_WIDTH);

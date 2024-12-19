@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*************************************************************
  *
  *                     40image.c
@@ -16,11 +17,17 @@
 #include <string.h>
 #include <stdlib.h>
 
+=======
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+>>>>>>> master
 #include "assert.h"
 #include "compress40.h"
 
 static void (*compress_or_decompress)(FILE *input) = compress40;
 
+<<<<<<< HEAD
 /**************** main ****************
  * 
  * main function for the 40image program which handles commands and calls the
@@ -37,6 +44,8 @@ static void (*compress_or_decompress)(FILE *input) = compress40;
  *      provided file is able to be opened (throws a CRE if not)
  *
  ********************************************/
+=======
+>>>>>>> master
 int main(int argc, char *argv[])
 {
         int i;

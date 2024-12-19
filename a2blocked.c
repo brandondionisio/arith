@@ -1,4 +1,5 @@
 #include <string.h>
+<<<<<<< HEAD
 #include <a2blocked.h>
 
 #include "uarray2b.h"
@@ -6,6 +7,15 @@
 /* define a private version of each function in A2Methods_T that we implement */
 
 typedef A2Methods_UArray2 A2;   /* private abbreviation */
+=======
+
+#include <a2blocked.h>
+#include "uarray2b.h"
+
+// define a private version of each function in A2Methods_T that we implement
+
+typedef A2Methods_UArray2 A2;   // private abbreviation
+>>>>>>> master
 
 static A2 new(int width, int height, int size)
 {
